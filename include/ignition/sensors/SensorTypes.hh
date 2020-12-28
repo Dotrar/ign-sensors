@@ -149,6 +149,10 @@ namespace ignition
       /// \sa Lidar
       LIDAR_NOISE = 14,
 
+      /// \brief Noise streams for the GPS sensor
+      /// \sa GPS
+      GPS_POSITION_NOISE = 15,
+
       /// \internal
       /// \brief Indicator used to create an iterator over the enum. Do not
       /// use this.
