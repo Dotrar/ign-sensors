@@ -126,7 +126,7 @@ namespace ignition
       public: void SetGravity(const math::Vector3d &_gravity);
 
       /// \brief Get the gravity vector
-      /// \return Gravity vectory in meters per second squared.
+      /// \return Gravity vector in meters per second squared.
       public: math::Vector3d Gravity() const;
 
       IGN_COMMON_WARN_IGNORE__DLL_INTERFACE_MISSING

@@ -17,6 +17,8 @@
 
 #include <ignition/common/Profiler.hh>
 #include <ignition/transport/Node.hh>
+#include <ignition/math/Angle.hh>
+#include <ignition/math/Vector3.hh>
 
 #include "ignition/sensors/GpsSensor.hh"
 #include "ignition/sensors/Noise.hh"
@@ -38,11 +40,17 @@ class ignition::sensors::GpsPrivate
   /// \brief true if Load() has been called and was successful
   public: bool initialized = false;
 
-  /// \brief latitude
-  public: double latitude = 0.0;
+  /// \brief latitude angle
+  public: ignition::math::Angle latitude;
 
-  /// \brief longitude
-  public: double longitude = 0.0;
+  /// \brief longitude angle
+  public: ignition::math::Angle longitude;
+
+  /// \brief altitude
+  public: double altitude = 0.0;
+
+  /// \brief velocity
+  public: ignition::math::Vector3d velocity; 
 
   /// \brief Noise added to sensor data
   public: std::map<SensorNoiseType, NoisePtr> noises;
@@ -105,7 +113,6 @@ bool GpsSensor::Load(const sdf::Sensor &_sdf)
       NoiseFactory::NewNoiseModel(
           _sdf.GpsSensor()->PositionNoise());
   }
-  /* TODO later: velocity noise 
   if (_sdf.GpsSensor()->VelocityNoise().Type()
       != sdf::NoiseType::NONE)
   {
@@ -113,7 +120,7 @@ bool GpsSensor::Load(const sdf::Sensor &_sdf)
       NoiseFactory::NewNoiseModel(
           _sdf.GpsSensor()->VelocityNoise());
   }
-  */
+
   this->dataPtr->initialized = true;
   return true;
 }
@@ -150,21 +157,44 @@ bool GpsSensor::Update(const std::chrono::steady_clock::duration &_now)
   frame->set_key("frame_id");
   frame->add_value(this->Name());
 
-  // Apply gps vertical position noise
+  // Apply gps position noise
   if (this->dataPtr->noises.find(GPS_POSITION_NOISE) !=
       this->dataPtr->noises.end())
   {
-    this->dataPtr->latitude =
-      this->dataPtr->noises[GPS_POSITION_NOISE]->Apply(this->dataPtr->latitude);
-
-    this->dataPtr->longitude =
-      this->dataPtr->noises[GPS_POSITION_NOISE]->Apply(this->dataPtr->longitude);
+    // Apply in degrees. 
+    this->SetLatitude(
+      this->dataPtr->noises[GPS_POSITION_NOISE]->Apply(this->Latitude())
+    );
+    this->SetLongitude(
+      this->dataPtr->noises[GPS_POSITION_NOISE]->Apply(this->Longitude())
+    );
+    this->SetAltitude(
+      this->dataPtr->noises[GPS_POSITION_NOISE]->Apply(this->dataPtr->Altitude())
+    );
+  }
+  // taken from ImuSensor.cc - convenience method
+  auto applyNoise = [&](SensorNoiseType noiseType, double &value)
+  {
+    if(this->dataPtr->noises.find(noiseType) != this->dataPtr->noises.end()){
+      value = this->dataPtr->noises[noiseType]->Apply(value);
+    }
   }
 
-  // Todo do the same for velocity
+  applyNoise(GPS_VELOCITY_NOISE, this->dataPtr->velocity.X());
+  applyNoise(GPS_VELOCITY_NOISE, this->dataPtr->velocity.Y());
+  applyNoise(GPS_VELOCITY_NOISE, this->dataPtr->velocity.Z());
 
-  msg.set_latitude_deg(this->dataPtr->latitude);
-  msg.set_longitude_deg(this->dataPtr->longitude);
+  //normalise so that it is within +/- 180
+  this->dataPtr->latitude.Normalize();
+  this->dataPtr->longitude.Normalize();
+
+
+  msg.set_latitude_deg(this->dataPtr->latitude.Degree());
+  msg.set_longitude_deg(this->dataPtr->longitude.Degree());
+  msg.set_altitude(this->dataPtr->altitude);
+  msg.set_velocity_east(this->dataPtr->velocity.X());
+  msg.set_velocity_north(this->dataPtr->velocity.X());
+  msg.set_velocity_up(this->dataPtr->velocity.X());
 
   // publish
   this->AddSequence(msg.mutable_header());
@@ -174,20 +204,25 @@ bool GpsSensor::Update(const std::chrono::steady_clock::duration &_now)
 }
 
 void   GpsSensor::SetLatitude(double _latitude) {
-  this->dataPtr->latitude = _latitude;
+  this->dataPtr->latitude.Degree(_latitude);
 }
+
 double GpsSensor::Latitude() const {
-  return this->dataPtr->latitude;
+  return this->dataPtr->latitude.Degree();
 }
+
 void   GpsSensor::SetLongitude(double _longitude) {
-  this->dataPtr->longitude = _longitude;
+  this->dataPtr->longitude.Degree(_longitude);
 }
+
 double GpsSensor::Longitude() const {
-  return this->dataPtr->longitude;
+  return this->dataPtr->longitude.Degree();
 }
-void   GpsSensor::SetPosition(double _latitude, double _longitude) {
+
+void   GpsSensor::SetPosition(double _latitude, double _longitude, double _altitude) {
   this->SetLongitude(_longitude);
   this->SetLatitude(_latitude);
+  this->SetAltitude(_altitude);
 }
 
 IGN_SENSORS_REGISTER_SENSOR(GpsSensor)

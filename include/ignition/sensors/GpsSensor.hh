@@ -77,26 +77,48 @@ namespace ignition
       public: virtual bool Update(
         const std::chrono::steady_clock::duration &_now) override;
 
+
+
       /// \brief Set the latitude of the GPS
-      /// \param[in] _ref Latitude of GPS in degrees
+      /// \param[in] _latitude Latitude of GPS in degrees
       public: void SetLatitude(double _latitude);
 
-      /// \brief Get the latitude of the GPS
+      /// \brief Get the latitude of the GPS, wraped between +/- 180
       /// \return Latitude in degrees.
       public: double Latitude() const;
 
+
       /// \brief Set the longitude of the GPS
-      /// \param[in] _ref Longitude of GPS in degrees
+      /// \param[in] _longitude Longitude of GPS in degrees
       public: void SetLongitude(double _longitude);
 
-      /// \brief Get the longitude of the GPS
+      /// \brief Get the longitude of the GPS, wraped between +/- 180
       /// \return Longitude in degrees.
       public: double Longitude() const;
 
-      /// \brief Set the position of the GPS
+
+      /// \brief Set the altitude of the GPS
+      /// \param[in] _altitude altitude of GPS in meters
+      public: void SetAltitude(double _altitude);
+
+      /// \brief GPS altitude is the GEOMETRIC altitude above sea level
+      /// \return Altitude in meters
+      public: double Altitude() const;
+
+
+      /// \brief Set the velocity of the GPS
+      /// \param[in] _vel vector3 of GPS in meters per second.
+      public: void SetVelocity(ignition::math::Vector3d _vel);
+
+      /// \brief Get the velocity of the GPS sensor
+      /// \return velocity vector3 in meters per second
+      public: ignition::math::Vector3d Velocity();
+
+
+      /// \brief Easy short hand for setting the lat/long of the gps.
       /// \param[in] _latitude in degrees
       /// \param[in] _longitude in degrees
-      public: void SetPosition(double _latitude, double _longitude);
+      public: void SetPosition(double _latitude, double _longitude, double _altitude = 0.0);
 
 
       IGN_COMMON_WARN_IGNORE__DLL_INTERFACE_MISSING
